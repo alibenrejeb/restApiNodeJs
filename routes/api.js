@@ -1,6 +1,14 @@
 var express = require('express');
 var router = express.Router();
 var User = require('../models/users');
+var verify = require('./verify');
+var passport = require('passport');
+
+// Pour les statistiques
+router.all('*', function(req, res, next) {
+    console.log("all");
+    next();
+});
 
 /* GET api rest. */
 router.get('/', function(req, res, next) {
@@ -8,6 +16,33 @@ router.get('/', function(req, res, next) {
         status: 200,
         message: 'api'
     })
+});
+
+router.post('/registerP', function(req, res, next) {
+    User.register(new User({
+            username: req.body.username,
+            firstname: req.body.firstname,
+            lastname: req.body.lastname,
+            mail: req.body.mail,
+            age: req.body.age,
+            isAdmin: req.body.admin
+        }),
+        req.body.password,
+        function(err, user) {
+            if (err) {
+                res.json(err);
+            }
+            res.json(user);
+        })
+});
+
+router.post('/loginP', function(req, res, next) {
+    passport.authenticate('local', function(err, user, info) {
+        req.logIn(user, function(err) {
+            var token = verify.getToken(user);
+            res.json(token);
+        })
+    })(req, res, next);
 });
 
 router.post('/register', function(req, res, next) {
@@ -46,7 +81,16 @@ router.get('/user/:id', function(req, res, next) {
     });
 });
 
-router.delete('/user', function(req, res, next) {
+/*router.delete('/user', function(req, res, next) {
+    User.findOneAndRemove({ _id: req.body.id }, function(err, user) {
+        if (err) {
+            res.json(err);
+        }
+        res.json(user);
+    })
+});*/
+
+router.delete('/user', verify.verifyUser, function(req, res, next) {
     User.findOneAndRemove({ _id: req.body.id }, function(err, user) {
         if (err) {
             res.json(err);

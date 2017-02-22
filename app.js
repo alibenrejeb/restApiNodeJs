@@ -5,15 +5,21 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
+var passport = require('passport');
+var localStrategy = require('passport-local').Strategy;
 
 // mongoose.connect('mongodb://localhost:27017/urlAPI');
-//mongoose.connect('mongodb://dbUrlApi:scomperleur@ds157529.mlab.com:57529/scomperleur');
-//mongoose.connect('mongodb://username:password@cluster0-shard-00-00-xrajz.mongodb.net:27017,cluster0-shard-00-01-xrajz.mongodb.net:27017,cluster0-shard-00-02-xrajz.mongodb.net:27017/dbapi?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin');
-mongoose.connect('mongodb://dbapi:dbapi@ds157529.mlab.com:57529/scomperleur');
-var db = mongoose.connection;
-db.once('open', function() {
-    console.log('connected to db');
-});
+// mongoose.connect('mongodb://username:password@cluster0-shard-00-00-xrajz.mongodb.net:27017,cluster0-shard-00-01-xrajz.mongodb.net:27017,cluster0-shard-00-02-xrajz.mongodb.net:27017/dbapi?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin');
+try {
+    var driver = 'mongodb://dbapi:dbapi@ds157529.mlab.com:57529/scomperleur';
+    mongoose.connect(driver);
+    var db = mongoose.connection;
+    db.once('open', function() {
+        console.log('is connected ' + db.readyState);
+    });
+} catch (e) {
+    console.error(e.toString());
+}
 
 var index = require('./routes/index');
 var users = require('./routes/users');
@@ -33,6 +39,13 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Initiat passportjs
+var User = require('./models/users');
+app.use(passport.initialize());
+passport.use(new localStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
 app.use('/', index);
 app.use('/users', users);
